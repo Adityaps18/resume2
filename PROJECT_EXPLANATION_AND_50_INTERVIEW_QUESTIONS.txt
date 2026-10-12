@@ -1,0 +1,463 @@
+================================================================================
+          AI RESUME SCREENING & MATCHING SYSTEM: COMPLETE GUIDE
+          - PART 1: EXPLAIN LIKE I'M 5 (HOW IT WORKS & HOW TO BUILD IT)
+          - PART 2: 50 MUST-KNOW INTERVIEW QUESTIONS & MODEL ANSWERS
+================================================================================
+
+
+================================================================================
+PART 1: EXPLAIN LIKE I'M 5 (ELI5) - HOW IT WORKS & HOW TO BUILD IT
+================================================================================
+
+--------------------------------------------------------------------------------
+1. THE BIG STORY: THE MAGICAL ROBOT RECRUITER
+--------------------------------------------------------------------------------
+Imagine you are the boss of a superhero company. You need a superhero who can 
+fly and breathe fire.
+
+Every day, 1,000 superheroes send you their "Report Cards" (called Resumes). 
+Each paper lists their super-powers (Skills), how many years they fought monsters 
+(Experience), which superhero school they graduated from (Education), and what 
+missions they finished (Projects).
+
+If a human reads all 1,000 papers one by one, their eyes get tired, they drink 
+too much coffee, and they make mistakes.
+
+So, we built an AI Robot Helper!
+1. You hand the robot a PDF resume.
+2. The robot reads it in 1 second.
+3. The robot compares it to the job mission (e.g., "Need Python, SQL, Machine Learning").
+4. The robot shows colorful badges of what skills matched, what skills are missing,
+   and gives an honest recommendation: "Hire", "Review", or "Reject (Role Mismatch)".
+
+
+--------------------------------------------------------------------------------
+2. HOW THE WHOLE MACHINE WORKS (THE 5 SECRET CHAMBERS)
+--------------------------------------------------------------------------------
+
+CHAMBER 1: THE TEXT CLEANER (src/preprocessing.py)
+- When a PDF is opened, it has messy stuff: email addresses, phone numbers, 
+  website links, and weird symbols.
+- The cleaner is like a broom. It sweeps away emails, phone numbers, and web links.
+- BUT it is a SMART broom: it knows that "C++", "C#", ".NET", and "Node.js" are 
+  important programming languages, so it protects those special symbols and 
+  doesn't delete them!
+
+CHAMBER 2: THE TREASURE HUNTER / PARSER (src/parser.py)
+- Once the text is clean, the robot extracts 4 key pieces of information:
+  a) Skills: It looks for 100+ technical words using "Word Boundaries" (\b). 
+     This means if someone writes "JavaScript", the robot is smart enough NOT to 
+     mistake it for "Java". It also knows nicknames (e.g., "K8s" means "Kubernetes", 
+     "ML" means "Machine Learning", "JS" means "JavaScript").
+  b) Experience: It looks for clues like "5+ years of experience" or dates like 
+     "2019 to 2023" (which equals 4 years).
+  c) Education: It spots degrees like B.Tech, M.Tech, MBA, PhD, and B.Sc.
+  d) Projects: It counts how many project stories the candidate wrote.
+
+CHAMBER 3: THE DOMAIN GUESSER (models/category_model.pkl)
+- Trained on hundreds of resumes across 25 categories (like Data Science, Java 
+  Developer, DevOps, Graphic Design).
+- It turns words into math numbers using TF-IDF (Term Frequency - Inverse Document 
+  Frequency). Words that are rare and special (like "PyTorch" or "Neural") get 
+  high scores; common words (like "the", "and") get ignored.
+- A Logistic Regression brain looks at these numbers and says: "This resume belongs 
+  to the Data Science category with 99% confidence!"
+
+CHAMBER 4: THE DUAL-SCORE MATCHMAKER (src/matcher.py)
+- How do we know if the candidate fits the specific job? We calculate TWO scores:
+  1. Skill Coverage Score (60% weight): Did the candidate have the exact skills 
+     demanded in the job description? (e.g., 3 out of 4 skills = 75%).
+  2. Semantic Context Score (40% weight): It checks the overall story and vibe of 
+     the resume against the job description using Cosine Similarity math.
+- The Composite Score combines both.
+- THE GOLDEN RULE (Decision Synthesis): If a candidate has a match score of only 
+  11%, the robot will NEVER say "Hire", even if the candidate has 10 years of 
+  experience in something else! It will say "Reject (Role Mismatch)".
+
+CHAMBER 5: THE GLASS BRAIN & DASHBOARD (src/explainability.py & app.py)
+- Nobody likes a mysterious robot that makes decisions in secret.
+- Our robot explains its brain! It displays:
+  - Green pills for Matched Skills.
+  - Red pills for Missing Skills.
+  - Blue pills for Extra Bonus Skills.
+  - Plain-English bullet points explaining why it recommended or rejected the person.
+- All rendered in a sleek Streamlit interactive web dashboard!
+
+
+--------------------------------------------------------------------------------
+3. STEP-BY-STEP RECIPE TO BUILD THIS PROJECT YOURSELF
+--------------------------------------------------------------------------------
+
+STEP 1: Install Python and create a virtual environment
+  python -m venv venv
+  venv\Scripts\activate
+
+STEP 2: Install the required libraries
+  pip install streamlit pandas scikit-learn pdfplumber joblib
+
+STEP 3: Organize your folders cleanly
+  resumescreening/
+  ├── data/                  <- Put your CSV datasets here
+  ├── models/                <- Saved .pkl model brains go here
+  ├── src/
+  │   ├── preprocessing.py   <- Text cleaning functions
+  │   ├── parser.py          <- Entity & skill extraction heuristics
+  │   ├── matcher.py         <- Dual matching & decision synthesis engine
+  │   ├── explainability.py  <- Feature attribution & explanations
+  │   └── train.py           <- Training & cross-validation script
+  ├── tests/                 <- Unit tests to prove your code doesn't break
+  ├── app.py                 <- Streamlit web interface
+  └── requirements.txt
+
+STEP 4: Write your training script (src/train.py)
+  Train two models using Scikit-Learn Pipelines:
+  - Model 1: TfidfVectorizer + LogisticRegression for Category classification.
+  - Model 2: ColumnTransformer (Text + OneHotEncoder + Imputer) for candidate qualification.
+
+STEP 5: Build your Streamlit UI (app.py)
+  Use st.file_uploader for PDF, st.text_area for Job Description, st.tabs for 
+  Metric Cards, Skill Badges, Explainability, and Text Inspection.
+
+STEP 6: Test your code (tests/)
+  Run: python -m unittest discover -s tests -p "test_*.py"
+  Ensure all unit tests pass before showing it to anyone!
+
+
+================================================================================
+PART 2: 50 COMPREHENSIVE INTERVIEW QUESTIONS & MODEL ANSWERS
+================================================================================
+
+--------------------------------------------------------------------------------
+SECTION A: PROJECT ARCHITECTURE & HIGH-LEVEL DESIGN (Q1 - Q10)
+--------------------------------------------------------------------------------
+
+Q1: What is the main objective of this AI Resume Screening System?
+A1: The system automates candidate resume parsing, classifies resumes into 25 
+    job categories, evaluates candidate fit against custom job descriptions via 
+    dual-score matching (exact skills + semantic similarity), and provides 
+    explainable hiring recommendations.
+
+Q2: Walk me through the end-to-end data flow when a user uploads a PDF.
+A2: 1. `pdfplumber` extracts raw text from the uploaded PDF stream.
+    2. `src/preprocessing.py` normalizes unicode, lowercases, and strips PII 
+       (emails, phone numbers, URLs) while preserving technical tokens (+, #, ., -).
+    3. `src/parser.py` extracts skills, calculates experience years, detects 
+       degrees, and counts projects.
+    4. The text is passed to `category_model.pkl` to predict the job category.
+    5. `src/matcher.py` computes skill coverage and TF-IDF cosine similarity 
+       against the job description.
+    6. `screening_model.pkl` and `synthesize_hiring_decision` generate a role-aware 
+       recommendation.
+    7. `src/explainability.py` extracts feature weights and decision factors.
+    8. The Streamlit dashboard renders metrics, skill gap badges, and charts.
+
+Q3: Why did you separate your project into a `src/` modular package instead of 
+    writing everything in a single Jupyter Notebook or `app.py`?
+A3: Separation of concerns. Writing modular code in `src/` ensures code reusability, 
+    prevents logic drift between training and inference, enables automated unit 
+    testing with `unittest`, and adheres to production software engineering standards.
+
+Q4: What is the purpose of having two separate machine learning models?
+A4: - Model 1 (Category Classifier): An NLP multiclass text classification model 
+      that identifies the domain of the candidate (e.g., Data Science vs Java Developer).
+    - Model 2 (Screening Classifier): A multimodal tabular + text pipeline 
+      that evaluates the candidate's overall profile strength (experience, 
+      education, certifications, project count, and skill breadth).
+
+Q5: Why did you choose Streamlit for the user interface?
+A5: Streamlit allows rapid prototyping of reactive, interactive data applications in 
+    pure Python with built-in state management, file uploaders, caching decorators 
+    (`@st.cache_resource`), and seamless UI rendering.
+
+Q6: How does the system handle scanned image-based PDF resumes?
+A6: `pdfplumber` extracts text from digital PDF streams. If a scanned/raster PDF 
+    is uploaded, the extracted text length is zero. The system detects this, 
+    halts gracefully, and alerts the user to upload a text-based PDF or integrates 
+    an OCR fallback (like Tesseract).
+
+Q7: What design pattern is used in your Scikit-Learn training pipelines?
+A7: We use the Composite / Pipeline Pattern (`sklearn.pipeline.Pipeline` combined 
+    with `ColumnTransformer`). This bundles preprocessing (imputation, encoding, 
+    TF-IDF) and model fitting into a single atomic estimator, preventing data leakage 
+    and ensuring identical transformations during test and inference time.
+
+Q8: How are model artifacts managed and loaded into memory?
+A8: Models are serialized using `joblib.dump()` during training (`src/train.py`) 
+    and loaded into memory once during Streamlit startup using the `@st.cache_resource` 
+    decorator to prevent reloading models on every user interaction.
+
+Q9: What happens if a recruiter uploads a resume without providing a Job Description?
+A9: The system gracefully handles this edge case: it bypasses JD-dependent skill 
+    gap analysis, evaluates candidate qualifications on general profile strength, 
+    and informs the recruiter that the assessment is based on overall credentials.
+
+Q10: What are the main limitations of this system in its current state?
+A10: 1. OCR is not built-in for pure image PDFs (requires external Tesseract/OCR engine).
+     2. Experience calculation relies on regex heuristics and date parsing, which 
+        can be deceived by non-standard resume date formats.
+     3. Training data for recruiter decision relies on a synthetic tabular dataset.
+
+
+--------------------------------------------------------------------------------
+SECTION B: NATURAL LANGUAGE PROCESSING & FEATURE ENGINEERING (Q11 - Q20)
+--------------------------------------------------------------------------------
+
+Q11: What is TF-IDF, and why was it chosen over simple Bag of Words (CountVectorizer)?
+A11: TF-IDF (Term Frequency - Inverse Document Frequency) penalizes words that appear 
+     frequently across all documents (like "experience", "responsible", "worked") 
+     while giving higher weights to rare, discriminative domain terms (like "PyTorch", 
+     "Kubernetes", "Django"). CountVectorizer merely counts frequency, which biases 
+     the model toward common filler words.
+
+Q12: Why is naive substring matching (e.g., `if "java" in text:`) dangerous in resume parsing?
+A12: Substring matching causes false positive leakage. For example:
+     - `"java"` matches `"javascript"`.
+     - `"c"` matches `"docker"` or `"communication"`.
+     - `"r"` matches `"react"` or `"leadership"`.
+     We solved this by using regex word boundaries (`\b(java)\b(?!script)`) and 
+     canonical taxonomy maps.
+
+Q13: How does your skill taxonomy handle synonyms and abbreviations?
+A13: `src/parser.py` defines a dictionary mapping canonical skill names to regex 
+     pattern lists. For example, `SKILL_TAXONOMY["kubernetes"] = [r"\bkubernetes\b", r"\bk8s\b"]` 
+     and `SKILL_TAXONOMY["machine learning"] = [r"\bmachine\s+learning\b", r"\bml\b"]`. 
+     Matches on any alias resolve to the standard canonical name.
+
+Q14: What is Sublinear TF scaling in `TfidfVectorizer(sublinear_tf=True)`?
+A14: Sublinear TF replaces Term Frequency $TF$ with $1 + \log(TF)$. This prevents a 
+     resume that repeats the word "Python" 20 times from having 20 times the 
+     importance of a resume that mentions it once or twice.
+
+Q15: What are N-Grams and why did you use `ngram_range=(1, 2)`?
+A15: N-grams are contiguous sequences of $N$ items from text. Unigrams ($N=1$) capture 
+     single words ("deep", "learning"), whereas bigrams ($N=2$) capture two-word 
+     phrases ("deep learning", "data science"). Using `(1, 2)` preserves vital 
+     multi-word technical concepts.
+
+Q16: How is Cosine Similarity calculated between two text vectors?
+A16: Cosine Similarity measures the cosine of the angle between two multi-dimensional 
+     TF-IDF vectors:
+     $$\text{Cosine Similarity}(A, B) = \frac{A \cdot B}{\|A\| \|B\|}$$
+     It yields a score between 0.0 (completely orthogonal/unrelated) and 1.0 
+     (identical direction/vocabulary distribution), independent of document length.
+
+Q17: Why did you preserve special characters like `+`, `#`, `.`, `-` during text cleaning?
+A17: Standard text cleaners remove all punctuation, which destroys programming 
+     languages like `C++` (turned into `C`), `C#` (turned into `C`), `.NET` (turned 
+     into `NET`), and `Node.js` (turned into `Node js`). Our custom regex specifically 
+     preserves these technical markers.
+
+Q18: What is Unicode normalization (`unicodedata.normalize("NFKD", text)`)?
+A18: Resumes often contain special unicode characters from Word/PDF exports like curly 
+     quotes (“ ”), em-dashes (—), non-breaking spaces, and bullet points (•). NFKD 
+     decomposes these into standard ASCII equivalents so regex rules don't fail.
+
+Q19: How would you scale skill extraction beyond predefined dictionary taxonomies?
+A19: By training a Named Entity Recognition (NER) model (e.g., using spaCy or a 
+     fine-tuned BERT token classifier) trained on labeled resume datasets to recognize 
+     unseen skills dynamically based on sentence context.
+
+Q20: Why did you set `max_features=5000` in the TF-IDF Vectorizer?
+A20: Restricting vocabulary size to the top 5,000 informative n-grams prevents 
+     overfitting on unique typos, reduces memory footprint, and speeds up matrix 
+     multiplication during inference.
+
+
+--------------------------------------------------------------------------------
+SECTION C: MACHINE LEARNING MODELING & EVALUATION (Q21 - Q30)
+--------------------------------------------------------------------------------
+
+Q21: Why did you choose Logistic Regression instead of Deep Learning / Neural Networks?
+A21: 1. Extreme computational efficiency (sub-millisecond inference on CPU).
+     2. High interpretability: feature weights directly translate to log-odds contributions.
+     3. For text classification with high-dimensional sparse TF-IDF vectors, linear 
+        models (Logistic Regression, LinearSVC) consistently match or exceed complex 
+        models without requiring heavy GPUs.
+
+Q22: What is the purpose of `class_weight="balanced"` in Logistic Regression?
+A22: In unbalanced datasets (e.g., 81% Hire vs 19% Reject), a naive classifier can 
+     achieve 81% accuracy by predicting "Hire" every time. `class_weight="balanced"` 
+     automatically adjusts weights inversely proportional to class frequencies:
+     $$w_j = \frac{N}{k \cdot n_j}$$
+     This heavily penalizes misclassifications on the minority class.
+
+Q23: What is Stratified K-Fold Cross Validation and why is it necessary?
+A23: Standard K-Fold splits data randomly, which might leave rare categories (e.g., 
+     Advocate, PMO) completely out of some validation folds. Stratified K-Fold ensures 
+     that every fold has the exact same percentage of each class as the complete dataset.
+
+Q24: What is the difference between Accuracy and Weighted F1-Score?
+A24: - Accuracy: Total correct predictions divided by total samples. Can be misleading 
+       under class imbalance.
+     - F1-Score: Harmonic mean of Precision (avoiding false alarms) and Recall 
+       (avoiding missed candidates):
+       $$F_1 = 2 \cdot \frac{\text{Precision} \cdot \text{Recall}}{\text{Precision} + \text{Recall}}$$
+     - Weighted F1 calculates metrics for each label and averages them weighted by support.
+
+Q25: What is `ColumnTransformer` and why is it superior to manual DataFrame preprocessing?
+A25: `ColumnTransformer` applies different transformations to different columns 
+     simultaneously (e.g., TF-IDF on "Skills", OneHotEncoder on "Education", and 
+     Median Imputer on "Experience"). It fits all encoders strictly on the training 
+     fold and applies them to test/unseen data, eliminating data leakage.
+
+Q26: What is Data Leakage and how did your codebase prevent it?
+A26: Data Leakage occurs when information from the test dataset is accidentally used 
+     to train the model (e.g., fitting TF-IDF vocabulary or imputing mean across the 
+     entire dataset before splitting). We prevented this by wrapping all preprocessing 
+     inside Scikit-Learn `Pipeline` objects that fit only on `X_train`.
+
+Q27: How does `predict_proba()` work in Logistic Regression?
+A27: Logistic Regression computes the linear combination of inputs $z = w^T x + b$, 
+     and passes $z$ through the Sigmoid / Softmax function:
+     $$\sigma(z) = \frac{1}{1 + e^{-z}}$$
+     This maps raw log-odds to a calibrated probability between 0.0 and 1.0 (0% to 100% confidence).
+
+Q28: Why did you use `handle_unknown="ignore"` in `OneHotEncoder`?
+A28: If a user enters a new degree or certification during inference that was never seen 
+     during training, standard OneHotEncoder throws a ValueError. `handle_unknown="ignore"` 
+     encodes the unseen category as all zeros, ensuring robust production execution.
+
+Q29: How did you handle missing values in numeric and categorical columns?
+A29: We used `SimpleImputer`:
+     - Categorical features: `strategy="most_frequent"` (Mode Imputation).
+     - Numeric features: `strategy="median"` (Median Imputation, which is robust to outliers).
+
+Q30: What were the quantitative benchmark results of your trained models?
+A30: - Category Classification Model: **99.48% Accuracy**, **99.49% Weighted F1-Score** 
+       (5-Fold CV Accuracy: 99.48% ± 0.26%).
+     - Candidate Screening Model: **96.50% Accuracy**, **96.58% Weighted F1-Score** 
+       (5-Fold CV F1: 96.94% ± 0.78%).
+
+
+--------------------------------------------------------------------------------
+SECTION D: ROLE-AWARE DECISION SYNTHESIS & EDGE CASES (Q31 - Q40)
+--------------------------------------------------------------------------------
+
+Q31: Why did the system initially recommend "Hire" for a candidate with an 11% Job Match Score?
+A31: The `screening_model.pkl` was trained to evaluate candidate profile credentials 
+     (years of experience, degree, projects) in isolation. When tested against a 
+     specific Job Description, a senior Civil Engineer with 10 years experience was 
+     predicted as "Hire" by the general profile model despite having zero relevant 
+     skills for a Data Science job.
+
+Q32: How did you fix the 11% match contradiction?
+A32: We introduced a **Decision Synthesis Engine** (`synthesize_hiring_decision` in 
+     `src/matcher.py`). It unifies the general profile model with the JD Match Score:
+     - If Match Score < 40%: The system overrides the output to **"Reject (Role Mismatch)"** 
+       regardless of general experience.
+     - If Match Score 40%–69%: Output is **"Review / Screen Further"**.
+     - If Match Score ≥ 70%: Output is **"Hire (Strong Fit)"**.
+
+Q33: How is the Composite Job Match Score formulated?
+A33: $$\text{Composite Score} = (0.60 \times \text{Skill Coverage Score}) + (0.40 \times \text{Semantic Context Score})$$
+     Skill Coverage ensures mandatory technical tools are present; Semantic Context 
+     ensures overall experience and domain depth match the job description narrative.
+
+Q34: How does the system extract candidate years of experience automatically?
+A34: `src/parser.py` executes two heuristics:
+     1. Regex pattern matching explicit mentions (e.g., `"(\\d+)\\+?\\s*(years|yrs)\\s+experience"`).
+     2. Date-range extraction searching for employment spans (e.g., `"2018 - 2022"`, 
+        `"2019 to Present"`), calculating elapsed years and summing valid non-overlapping spans.
+
+Q35: How does the system extract education degrees?
+A35: Using hierarchy-ordered regex rules that prioritize highest terminal degrees:
+     PhD / Doctorate $\rightarrow$ M.Tech / MS / MCA $\rightarrow$ MBA $\rightarrow$ B.Tech / BE $\rightarrow$ B.Sc / BCA.
+
+Q36: What happens if a job description contains zero recognized skills?
+A36: `match_resume_to_job` checks `if not job_skills:`. In that case, it falls back 
+     to 100% semantic similarity matching rather than dividing by zero, preventing 
+     `ZeroDivisionError` crashes.
+
+Q37: Why did you provide an editable form expander in the UI after auto-parsing?
+A37: Human-in-the-loop design. While automated heuristics parse 90%+ of details 
+     accurately, unusual resume formatting or graphics might cause minor omissions. 
+     Allowing recruiters to review and edit parsed inputs guarantees fairness and transparency.
+
+Q38: How does the explainability module generate feature importance scores?
+A38: For linear models, each feature's impact is calculated as:
+     $$\text{Impact}_i = x_i \times w_i$$
+     Where $x_i$ is the candidate's encoded value (0 or 1 for skills/categories) and 
+     $w_i$ is the learned regression coefficient. Features with positive weights 
+     drive "Hire", while negative or missing features drive "Reject".
+
+Q39: How does the system avoid crashing when given corrupted or password-protected PDFs?
+A39: The PDF extraction function wraps `pdfplumber.open()` in a `try...except Exception` 
+     block, catching IO and decoding errors and returning a descriptive error message 
+     to the Streamlit UI rather than crashing the server.
+
+Q40: How do unit tests ensure regression prevention in this project?
+A40: We implemented 18 automated tests in `tests/` checking text cleaning, PII stripping, 
+     token safety, regex boundary matching, semantic similarity thresholds, and 
+     verifying that low match scores (< 40%) always trigger rejection.
+
+
+--------------------------------------------------------------------------------
+SECTION E: ETHICS, MLOPS, SCALABILITY & ADVANCED EXTENSIONS (Q41 - Q50)
+--------------------------------------------------------------------------------
+
+Q41: What legal and ethical regulations govern AI resume screening tools?
+A41: Automated Employment Decision Tools (AEDT) are regulated under laws like NYC Local 
+     Law 144, the European Union AI Act (High-Risk AI Systems), and EEOC guidelines. 
+     They require annual bias audits, disparate impact analysis across protected 
+     classes (gender, race, age), transparent explainability, and mandatory human review.
+
+Q42: How does this project mitigate algorithmic hiring bias?
+A42: 1. PII Stripping: Names, emails, phone numbers, and addresses are stripped 
+        prior to text classification.
+     2. Class balancing prevents majority-class bias.
+     3. Ethical AI disclaimers explicitly mandate that the tool acts as decision 
+        support for human recruiters rather than an autonomous hiring decision-maker.
+
+Q43: What is Model Drift and Concept Drift, and how would you monitor it?
+A43: - Data Drift: The distribution of candidate resumes changes over time (e.g., 
+       new frameworks like LangChain or Mojo become popular).
+     - Concept Drift: The relationship between resume features and hiring decisions 
+       changes (e.g., remote work skills become prioritized).
+     - Monitored by logging inference inputs, calculating population stability index 
+       (PSI), and tracking recruiter override rates.
+
+Q44: How would you containerize and deploy this application to production?
+A44: 1. Create a `Dockerfile` with a lightweight Python base image (`python:3.11-slim`).
+     2. Copy `requirements.txt` and install dependencies.
+     3. Copy `src/`, `models/`, `data/`, and `app.py`.
+     4. Expose Streamlit port 8501 and define `ENTRYPOINT ["streamlit", "run", "app.py"]`.
+     5. Deploy to AWS ECS, Google Cloud Run, or Kubernetes (EKS).
+
+Q45: How would you replace TF-IDF with modern Transformer Embeddings (e.g., BERT)?
+A45: Use Sentence-Transformers (`sentence-transformers/all-MiniLM-L6-v2` or `BGE-large-en`). 
+     Pass raw text through the transformer encoder to obtain 384-dimensional dense 
+     semantic vectors, then compute cosine similarity. This captures true semantic 
+     synonyms (e.g., "managed a cluster" $\leftrightarrow$ "distributed systems administration").
+
+Q46: How would you scale this system to process 100,000 resumes concurrently?
+A46: 1. Decouple frontend from processing: upload resumes to AWS S3.
+     2. Send parsing tasks to a message queue (RabbitMQ / AWS SQS).
+     3. Distribute parsing across Celery / Ray worker nodes.
+     4. Store dense vector embeddings in a Vector Database (Pinecone / Milvus / Qdrant) 
+        for sub-millisecond ANN (Approximate Nearest Neighbor) similarity search.
+
+Q47: Why is it bad practice to commit `.pkl` model files directly to Git repositories?
+A47: Binary model files bloat Git history, cannot be diffed, and do not track data/hyperparameter 
+     provenance. In enterprise systems, models are versioned using tools like DVC 
+     (Data Version Control), MLflow Model Registry, or AWS S3 model buckets.
+
+Q48: What is the risk of using unpinned dependencies in `requirements.txt`?
+A48: Different versions of Scikit-Learn or Pandas change internal binary representations. 
+     Loading a pickle file serialized on Scikit-Learn 1.3 into Scikit-Learn 1.5 can throw 
+     `InconsistentVersionWarning` or crash with unpickling errors. Pinned dependencies 
+     guarantee reproducibility.
+
+Q49: How would you build a feedback loop to continuously improve the model?
+A49: When a recruiter reviews a candidate and makes a final decision (Accept/Reject), 
+     log the resume features along with the recruiter's actual decision. Periodically 
+     evaluate model alignment and retrain/fine-tune the pipeline on verified recruiter feedback.
+
+Q50: If you had another sprint on this project, what single feature would you build next?
+A50: An automated LLM-powered Resume Critique & Feedback Generator that provides the 
+     candidate or recruiter with a bulleted gap analysis (e.g., "Candidate is strong 
+     in Python/SQL but lacks containerization experience with Docker; recommend asking 
+     about cloud deployment in interview Round 1").
+
+================================================================================
+                                END OF DOCUMENT
+================================================================================

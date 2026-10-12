@@ -1,0 +1,13 @@
+venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.env
+.streamlit/secrets.toml
+
+# Keep the canonical artifacts in models/ and data/ only.
+/*.pkl
+/*.csv
+
+# Contains email addresses and phone numbers embedded in resume text.
+/data/UpdatedResumeDataSet.csv
